@@ -2,65 +2,42 @@
 
 Practical GPU and quant profiles for running open coding agents.
 
-This repo is the public map for BENCORP's local-agent inference experiments:
-which open models run on which GPUs, what they cost, how they feel in real
-agent work, and what it takes to reproduce the useful profiles.
+This repo is a public notebook for BENCORP's local-agent inference experiments:
+which models fit on which GPUs, what they cost, what quality evidence exists,
+and what it takes to reproduce the useful profiles.
 
-The goal is not to crown a generic "best local LLM." The goal is narrower and
-more useful:
+The HTML pages are the primary reports. The README is the index.
 
-```text
-Given a GPU tier, what is the smartest coding-agent profile that is still
-usable, reproducible, and cost-rational?
-```
+## Start Here
 
-## First Ladders
+- [HTML index](index.html)
+- [Ornith 1.0 35B Q5 on one RTX 3090](experiments/ornith-35b-rtx-3090.html)
+- [Planned: Qwen3.6 27B on one RTX 3090](experiments/qwen-27b-rtx-3090.html)
 
-The initial ladder starts with the hardware people actually ask about:
+## Current Ladder
 
-| Tier | Question | First profiles |
+| Tier | Best current question | Status |
 | --- | --- | --- |
-| RTX 3090 24GB | Cheapest serious local-agent tier | Ornith 35B Q5, Qwen3.6 27B Q5 |
-| A100 40GB | Cheap Q8 frontier | Qwen3.6 27B Q8 at reduced context |
-| RTX 6000 Ada / L40S | Comfortable single-GPU Q8 tier | Qwen/Qwable 27B Q8-class profiles |
-| H100 / H200 | Reference ceiling | Full-context Q8 and larger model probes |
+| RTX 3090 24GB | What is the smartest serious local-agent profile under cheap rented GPU economics? | Ornith 35B Q5 runtime proven; Qwen3.6 27B next. |
+| A100 40GB | Can Qwen3.6 27B run at higher fidelity without H100 pricing? | Planned. |
+| L40S / RTX 6000 Ada | Is comfortable single-GPU Q8 the best cost/intelligence point? | Planned. |
+| H100 / H200 | What is the reference ceiling before bigger multi-GPU models? | Internal baseline evidence exists; public page pending. |
 
-## What Each Experiment Reports
+## How To Read A Result
 
-Each experiment should answer the same questions:
+Each experiment tries to separate three claims:
 
-- **Verdict:** would we use it, for what, and why?
-- **Hardware:** GPU, VRAM, provider, cost per hour, and any host caveats.
-- **Model:** Hugging Face repo, exact file, quant, size, and hash when useful.
-- **Runtime:** llama.cpp or fork, commit, context, KV cache format, MTP,
-  offload, batch settings, and important flags.
-- **Fit:** idle and active VRAM, what failed, and what finally worked.
-- **Speed:** prompt prefill, server decode tok/s, wall tok/s, and first-token
-  behavior when measured.
-- **Quality:** coding-agent eval result, visible caveats, and subjective notes
-  that survived comparison.
-- **Run it:** commands or pointers that let someone reproduce the profile
-  without guessing.
+- **Fit:** does the model actually load at the target context and stay stable?
+- **Speed:** does it clear the practical agent floor, using both server decode
+  and client-observed wall tokens per second?
+- **Quality:** does it solve agent tasks well enough to matter?
 
-## Current Bias
-
-Quality is the objective. Hardware and context are constraints. Speed is a
-floor.
-
-For coding-agent work, a profile that is merely fast is not enough. A profile
-has to clear a practical wall-clock floor and then win on usefulness. The
-default floor for these notes is 5 request-observed wall tokens per second on
-the target workload.
+The default floor is 5 wall tokens per second. Above that floor, quality wins.
+A smaller or lower-quant profile is only better if it makes the agent more
+useful, not merely faster.
 
 ## Safety Boundary
 
-This repo should contain safe summaries: model links, configs, hashes, counts,
-timings, costs, and high-level conclusions. It should not contain raw
-red-team prompts, raw sensitive model responses, private traces, credentials,
-or BENCORP-internal task data.
-
-## Status
-
-Bootstrap repo. The first published page will start from the already-proven
-single-RTX-3090 Ornith Q5 work, followed by the Qwen3.6 27B 3090 and A100
-experiments.
+This repo contains safe summaries: model links, configs, hashes when useful,
+timings, costs, and high-level conclusions. It should not contain raw red-team
+prompts, private traces, credentials, or BENCORP-internal task data.

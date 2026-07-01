@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BENCORP GPU Ladder</title>
+    <link rel="stylesheet" href="assets/styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <article class="paper">
+        <header>
+          <p class="kicker">BENCORP GPU Ladder</p>
+          <h1>Open coding-agent profiles, sorted by cost and proof.</h1>
+          <p class="lede">
+            This is a public notebook for model fit experiments: which open
+            models run on which GPUs, what quality variables were preserved,
+            what failed, and what a practical operator can reproduce.
+          </p>
+          <nav aria-label="Primary">
+            <a href="experiments/ornith-35b-rtx-3090.html">Ornith 35B on RTX 3090</a>
+            <a href="experiments/qwen-27b-rtx-3090.html">Qwen3.6 27B on RTX 3090</a>
+            <a href="https://github.com/beverm2391/bencorp-gpu-ladder">GitHub repo</a>
+          </nav>
+        </header>
+
+        <section>
+          <h2>The Shape</h2>
+          <p>
+            A useful local-agent profile is not just a model that loads. It has
+            to preserve the quality variables that matter, clear a wall-clock
+            speed floor, and survive enough task evidence to be worth using.
+          </p>
+          <p>
+            The ladder starts with the hardware people actually ask about:
+            RTX 3090, A100, L40S or RTX 6000 Ada, then H100/H200 as the
+            reference ceiling. The default floor is 5 client-observed wall
+            tokens per second. Above that floor, quality wins.
+          </p>
+        </section>
+
+        <section>
+          <h2>Current Rungs</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>GPU</th>
+                <th>Profile</th>
+                <th>Status</th>
+                <th>Read</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>RTX 3090 24GB</td>
+                <td>Ornith 1.0 35B <code>Q5_K_S</code>, 128K, q8 K / turbo2 V</td>
+                <td>Runtime-proven. Quality evidence is useful but conflicting.</td>
+                <td><a href="experiments/ornith-35b-rtx-3090.html">Report</a></td>
+              </tr>
+              <tr>
+                <td>RTX 3090 24GB</td>
+                <td>Qwen3.6 27B abliterated, likely Q5/Q6 lane</td>
+                <td>Next experiment. Stronger base-card coding metrics than the 35B-A3B sibling.</td>
+                <td><a href="experiments/qwen-27b-rtx-3090.html">Plan</a></td>
+              </tr>
+              <tr>
+                <td>A100 40GB</td>
+                <td>Qwen3.6 27B higher-fidelity profile</td>
+                <td>Planned cost/intelligence comparison.</td>
+                <td>Pending</td>
+              </tr>
+              <tr>
+                <td>H100 / H200</td>
+                <td>Qwen3.6 27B Q8 and larger candidates</td>
+                <td>Reference baseline exists internally; public report pending.</td>
+                <td>Pending</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2>What Counts As Proof</h2>
+          <div class="grid">
+            <div class="tile">
+              <h3>Fit</h3>
+              <p class="status">
+                Exact model file, quant, context, KV cache format, placement,
+                and observed VRAM.
+              </p>
+            </div>
+            <div class="tile">
+              <h3>Speed</h3>
+              <p class="status">
+                Server decode tokens per second and wall tokens per second,
+                especially at long-context decode.
+              </p>
+            </div>
+            <div class="tile">
+              <h3>Quality</h3>
+              <p class="status">
+                Public benchmarks where available, plus agent-task results when
+                the public harness does not answer the operator question.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Safety Boundary</h2>
+          <p>
+            These pages publish safe summaries: model links, runtime settings,
+            costs, timings, benchmark summaries, and high-level conclusions.
+            They do not publish private task traces, raw red-team artifacts,
+            credentials, or sensitive model outputs.
+          </p>
+        </section>
+
+        <footer>
+          <p>
+            Built as plain static HTML so the repo can be read locally, served
+            with GitHub Pages, or copied into another docs surface without a
+            build step.
+          </p>
+        </footer>
+      </article>
+    </main>
+  </body>
+</html>
