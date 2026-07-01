@@ -6,6 +6,8 @@ This repo is a public notebook for BENCORP's local-agent inference experiments:
 which models fit on which GPUs, what they cost, what quality evidence exists,
 and what it takes to reproduce the useful profiles.
 
+> This repo is sponsored by [BENCORP](https://bencorp.dev/).
+
 The HTML pages are the primary reports. The README is the index.
 
 ## Start Here
