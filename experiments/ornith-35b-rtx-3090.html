@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ornith 35B Q5 on RTX 3090</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <article class="paper">
+        <header>
+          <p class="kicker">RTX 3090 rung</p>
+          <h1>Fitting Ornith 35B Q5 at 128K on one RTX 3090.</h1>
+          <p class="lede">
+            The useful result is not that Ornith can be squeezed onto a
+            24GB GPU. It is that a single 3090 can keep Q5 weights, q8 K,
+            turbo2 V, and 128K context while still decoding fast enough for
+            agent work.
+          </p>
+          <div class="meta">
+            <span>Model: Ornith 1.0 35B</span>
+            <span>Quant: Q5_K_S</span>
+            <span>GPU: RTX 3090 24GB</span>
+            <span>Status: runtime-proven, quality-gated</span>
+          </div>
+          <nav aria-label="Breadcrumb">
+            <a href="../index.html">Index</a>
+            <a href="qwen-27b-rtx-3090.html">Next: Qwen 27B 3090 plan</a>
+            <a href="https://huggingface.co/bartowski/deepreinforce-ai_Ornith-1.0-35B-GGUF">GGUF weights</a>
+          </nav>
+        </header>
+
+        <section>
+          <h2>Verdict</h2>
+          <div class="callout">
+            <p>
+              Best current single-3090 Ornith runtime: <code>Q5_K_S</code>
+              weights, q8 K, turbo2 V, <code>TURBO_LAYER_ADAPTIVE=7</code>,
+              128K context, <code>--n-gpu-layers 41</code>, <code>-b 512</code>,
+              <code>-ub 64</code>, and two layer-0 MoE expert tensors on CPU.
+            </p>
+          </div>
+          <p>
+            This is a runtime win, not a final quality promotion. The profile
+            improved high-context server decode by about 20 tokens per second
+            over the older Q5 baseline, but agent-task results are conflicting:
+            historical hard-suite runs reached 6/6, while the latest rerun was
+            3/6. Treat it as the best proven fit/speed profile and keep quality
+            evaluation open.
+          </p>
+        </section>
+
+        <section>
+          <h2>Frozen Profile</h2>
+          <table>
+            <tbody>
+              <tr>
+                <th>Model repo</th>
+                <td><a href="https://huggingface.co/bartowski/deepreinforce-ai_Ornith-1.0-35B-GGUF">bartowski/deepreinforce-ai_Ornith-1.0-35B-GGUF</a></td>
+              </tr>
+              <tr>
+                <th>GGUF</th>
+                <td><code>deepreinforce-ai_Ornith-1.0-35B-Q5_K_S.gguf</code></td>
+              </tr>
+              <tr>
+                <th>Hardware</th>
+                <td>One RTX 3090, 24GB VRAM</td>
+              </tr>
+              <tr>
+                <th>Context</th>
+                <td><code>--ctx-size 131072</code></td>
+              </tr>
+              <tr>
+                <th>KV cache</th>
+                <td><code>--cache-type-k q8_0 --cache-type-v turbo2</code></td>
+              </tr>
+              <tr>
+                <th>TurboQuant</th>
+                <td><code>TURBO_LAYER_ADAPTIVE=7</code></td>
+              </tr>
+              <tr>
+                <th>Placement</th>
+                <td><code>--n-gpu-layers 41</code>, with layer-0 <code>ffn_down_exps</code> and <code>ffn_gate_exps</code> on CPU</td>
+              </tr>
+              <tr>
+                <th>Batch geometry</th>
+                <td><code>-b 512 -ub 64</code></td>
+              </tr>
+              <tr>
+                <th>Practical stability</th>
+                <td><code>GGML_CUDA_DISABLE_GRAPHS=1</code> for the eval launcher</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2>The Trick</h2>
+          <p>
+            The first Q5 fit used <code>--n-gpu-layers 39</code>. It preserved
+            q8 K, turbo2 V, and 128K context, but high-context decode sat near
+            50 to 54 server tokens per second. A blunt move to more GPU layers
+            was tight. The useful move was tensor-level placement: keep one
+            more layer on GPU, but force only two layer-0 MoE expert tensors to
+            CPU:
+          </p>
+          <pre><code>-ot '^blk\\.0\\.ffn_(down|gate)_exps\\.weight$=CPU'</code></pre>
+          <p>
+            That recovered just enough allocator headroom without weakening the
+            weight quant, K cache, V cache, or context target. Layer count was
+            too blunt; tensor placement was precise enough.
+          </p>
+        </section>
+
+        <section>
+          <h2>Runtime Proof</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th class="num">Q5 ngl39 server tok/s</th>
+                <th class="num">Promoted server tok/s</th>
+                <th class="num">Delta</th>
+                <th class="num">Promoted wall tok/s</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ctx98304/out8192</code></td>
+                <td class="num">53.617</td>
+                <td class="num">77.304</td>
+                <td class="num">+23.687</td>
+                <td class="num">43.813</td>
+              </tr>
+              <tr>
+                <td><code>ctx114688/out8192</code></td>
+                <td class="num">51.139</td>
+                <td class="num">72.290</td>
+                <td class="num">+21.150</td>
+                <td class="num">62.840</td>
+              </tr>
+              <tr>
+                <td><code>ctx122880/out8192</code></td>
+                <td class="num">50.004</td>
+                <td class="num">69.723</td>
+                <td class="num">+19.719</td>
+                <td class="num">64.206</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            Observed VRAM was tight but usable: about 24,076 MiB idle and
+            24,130 MiB during active decode. That is why the exact host,
+            template, graph behavior, and ubatch matter.
+          </p>
+        </section>
+
+        <section>
+          <h2>Quality Evidence</h2>
+          <p>
+            The runtime proof and quality proof are separate. Runtime says the
+            profile fits and moves. Quality says whether it should become a
+            daily agent profile.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Check</th>
+                <th>Result</th>
+                <th>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Terminal hard suite</td>
+                <td>Historical 6/6, latest rerun 3/6</td>
+                <td>Useful but conflicting. Do not quality-promote yet.</td>
+              </tr>
+              <tr>
+                <td>IFEval full</td>
+                <td>Strict prompt accuracy 0.834, loose prompt accuracy 0.872</td>
+                <td>Instruction following is credible for a 3090 profile.</td>
+              </tr>
+              <tr>
+                <td>SimpleBench 10-case ladder</td>
+                <td>5/10 at max 8192 tokens</td>
+                <td>Reasoning is not a clean win.</td>
+              </tr>
+              <tr>
+                <td>MMLU-Pro lite 100</td>
+                <td>59/100</td>
+                <td>Small subset only. Use as a smoke, not a leaderboard score.</td>
+              </tr>
+              <tr>
+                <td>LiveBench lite 50</td>
+                <td>Mean score 0.553</td>
+                <td>Small subset with local harness fixes. Directional only.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2>Rejected Paths</h2>
+          <ul>
+            <li><code>ub128</code> OOMed during CUDA graph launch.</li>
+            <li><code>ub96</code> and <code>ub112</code> were not reliable enough for the practical launcher.</li>
+            <li>Lowering K to <code>q5_1</code>, <code>q5_0</code>, or <code>q4_0</code> changed a core quality variable and collapsed on long-context prefill.</li>
+            <li><code>--n-gpu-layers 41 -ot output.*=CPU</code> fit but decoded too slowly.</li>
+            <li><code>GGML_CUDA_FORCE_CUBLAS=ON</code> was worse for this profile.</li>
+            <li>Graph-limit experiments improved stability evidence, not speed. Graph-disabled <code>ub64</code> remains the practical launcher.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Reproduce The Shape</h2>
+          <p>
+            This page publishes the stable server shape, not provider secrets
+            or private tunnel details. The essential runtime contract is:
+          </p>
+          <pre><code>GGML_CUDA_DISABLE_GRAPHS=1
+TURBO_LAYER_ADAPTIVE=7
+
+llama-server \
+  --model deepreinforce-ai_Ornith-1.0-35B-Q5_K_S.gguf \
+  --ctx-size 131072 \
+  --cache-type-k q8_0 \
+  --cache-type-v turbo2 \
+  --n-gpu-layers 41 \
+  -b 512 \
+  -ub 64 \
+  -ot '^blk\\.0\\.ffn_(down|gate)_exps\\.weight$=CPU' \
+  -fa on \
+  --parallel 1 \
+  -fit off \
+  --reasoning off \
+  --jinja \
+  --no-webui \
+  --no-mmproj</code></pre>
+          <p>
+            The command assumes a TurboQuant-capable llama.cpp build and the
+            matching GGUF file. For a less aggressive fallback, keep the same
+            quality variables and use <code>--n-gpu-layers 40</code> without
+            the layer-0 tensor offload.
+          </p>
+        </section>
+
+        <footer>
+          <p>
+            Published as a safe summary. Raw private traces, provider tunnel
+            details, credentials, and sensitive prompts are intentionally
+            excluded.
+          </p>
+        </footer>
+      </article>
+    </main>
+  </body>
+</html>

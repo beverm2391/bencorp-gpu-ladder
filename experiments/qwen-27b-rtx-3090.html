@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Qwen3.6 27B on RTX 3090</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <article class="paper">
+        <header>
+          <p class="kicker">Planned RTX 3090 rung</p>
+          <h1>Qwen3.6 27B is the next single-3090 intelligence/cost test.</h1>
+          <p class="lede">
+            The hypothesis is simple: the 27B dense Qwen base may be a better
+            coding-agent brain than the 35B-A3B MoE Ornith path, even if we
+            need a lower quant or a tighter runtime profile to fit it on 24GB.
+          </p>
+          <nav aria-label="Breadcrumb">
+            <a href="../index.html">Index</a>
+            <a href="ornith-35b-rtx-3090.html">Ornith 35B RTX 3090 result</a>
+            <a href="https://huggingface.co/huihui-ai/Huihui-Qwen3.6-27B-abliterated-MTP-GGUF">Candidate weights</a>
+          </nav>
+        </header>
+
+        <section>
+          <h2>Current Hypothesis</h2>
+          <p>
+            Start with <a href="https://huggingface.co/huihui-ai/Huihui-Qwen3.6-27B-abliterated-MTP-GGUF">Huihui-Qwen3.6-27B-abliterated-MTP-GGUF</a>.
+            The known public candidate sizes make the 3090 lane interesting:
+            Q4 around 15.7 GiB, Q5 around 18.2 GiB, Q6 around 20.9 GiB, and
+            Q8 around 27.1 GiB. Q8 is not a single-3090 target at useful
+            context; Q5 or Q6 plus careful KV/runtime work is the likely search.
+          </p>
+          <p>
+            This page is intentionally a plan until the profile is measured.
+            The Ornith page is the current single-3090 result.
+          </p>
+        </section>
+
+        <section>
+          <h2>Experiment Questions</h2>
+          <ul>
+            <li>Can Qwen3.6 27B keep a useful quant and at least 64K context on one 3090?</li>
+            <li>Does Q5 beat the Ornith Q5 profile on coding-agent quality at similar cost?</li>
+            <li>Is Q6 feasible with acceptable KV cache and wall-clock speed?</li>
+            <li>Does MTP help enough in this runtime to matter for agent work?</li>
+            <li>What is the cheapest profile that stays above 5 wall tokens per second?</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Baseline To Beat</h2>
+          <p>
+            The current 3090 bar is Ornith 35B Q5 at 128K: about 69.7 server
+            tokens per second and 64.2 wall tokens per second at
+            <code>ctx122880/out8192</code>, with quality evidence still
+            unresolved. Qwen does not need to beat that speed. It needs to
+            clear the speed floor and look smarter.
+          </p>
+        </section>
+
+        <footer>
+          <p>
+            Pending measurement. This page should become a result page once the
+            first Qwen 27B 3090 fit ladder has real launch, VRAM, speed, and
+            quality evidence.
+          </p>
+        </footer>
+      </article>
+    </main>
+  </body>
+</html>
