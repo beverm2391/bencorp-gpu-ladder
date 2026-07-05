@@ -14,6 +14,7 @@ The HTML pages are the primary reports. The README is the index.
 
 - [HTML index](index.html)
 - [Ornith 1.0 35B Q5 on one RTX 3090](experiments/ornith-35b-rtx-3090.html)
+- [GLM-5.2 abliterated Q3 on 4x A100 80GB](experiments/glm52-q3-4x-a100.html)
 - [Planned: Qwen3.6 27B on one RTX 3090](experiments/qwen-27b-rtx-3090.html)
 
 ## Current Ladder
@@ -22,6 +23,7 @@ The HTML pages are the primary reports. The README is the index.
 | --- | --- | --- |
 | RTX 3090 24GB | What is the smartest serious local-agent profile under cheap rented GPU economics? | Ornith 35B Q5 runtime proven; Qwen3.6 27B next. |
 | A100 40GB | Can Qwen3.6 27B run at higher fidelity without H100 pricing? | Planned. |
+| 4x A100 80GB | What is the low-cost CUDA control for GLM-5.2-class large-agent models? | GLM-5.2 abliterated Q3 profiling proven at 128K; not quality-promoted. |
 | L40S / RTX 6000 Ada | Is comfortable single-GPU Q8 the best cost/intelligence point? | Planned. |
 | H100 / H200 | What is the reference ceiling before bigger multi-GPU models? | Internal baseline evidence exists; public page pending. |
 
