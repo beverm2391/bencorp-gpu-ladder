@@ -20,6 +20,7 @@
           <nav aria-label="Primary">
             <a href="experiments/ornith-35b-rtx-3090.html">Ornith 35B on RTX 3090</a>
             <a href="experiments/qwen-27b-rtx-3090.html">Qwen3.6 27B on RTX 3090</a>
+            <a href="experiments/glm52-q3-4x-a100.html">GLM-5.2 Q3 on 4x A100</a>
             <a href="https://github.com/beverm2391/bencorp-gpu-ladder">GitHub repo</a>
           </nav>
         </header>
@@ -68,6 +69,12 @@
                 <td>Qwen3.6 27B higher-fidelity profile</td>
                 <td>Planned cost/intelligence comparison.</td>
                 <td>Pending</td>
+              </tr>
+              <tr>
+                <td>4x A100 80GB</td>
+                <td>GLM-5.2 abliterated <code>UD_Q3_K_M</code>, 128K, q8 K / turbo2 V</td>
+                <td>Profiling-proven CUDA control: 14.06 wall tok/s at 1k, 10.80 wall tok/s at 100k target.</td>
+                <td><a href="experiments/glm52-q3-4x-a100.html">Report</a></td>
               </tr>
               <tr>
                 <td>H100 / H200</td>

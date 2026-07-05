@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GLM-5.2 Q3 on 4x A100</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <article class="paper">
+        <header>
+          <p class="kicker">4x A100 CUDA control</p>
+          <h1>GLM-5.2 abliterated Q3 runs at 128K on four A100 80GB GPUs.</h1>
+          <p class="lede">
+            This result establishes a reproducible CUDA control for the large
+            GLM lane: Huihui GLM-5.2 abliterated, Q3_K_M-class GGUF, q8 K,
+            turbo2 V, 128K context, and six MoE expert layers spilled to CPU.
+          </p>
+          <div class="meta">
+            <span>Model: GLM-5.2 abliterated</span>
+            <span>Quant: UD_Q3_K_M</span>
+            <span>GPU: 4x A100-SXM4-80GB</span>
+            <span>Status: profiling-proven, not quality-promoted</span>
+          </div>
+          <nav aria-label="Breadcrumb">
+            <a href="../index.html">Index</a>
+            <a href="ornith-35b-rtx-3090.html">RTX 3090 result</a>
+            <a href="https://huggingface.co/huihui-ai/Huihui-GLM-5.2-abliterated-GGUF">GGUF weights</a>
+            <a href="https://github.com/beverm2391/llama-cpp-turboquant">Runtime fork</a>
+          </nav>
+        </header>
+
+        <section>
+          <h2>Verdict</h2>
+          <div class="callout">
+            <p>
+              The useful A100 profile is
+              <code>glm52-ablit-q3km-a100-128k-sixspill</code>: TurboQuant
+              <code>llama-server</code>, 128K context, q8 K, turbo2 V,
+              <code>-b 1024 -ub 128</code>, layer split across four GPUs, and
+              exactly six MoE expert layers on CPU.
+            </p>
+          </div>
+          <p>
+            This clears the practical wall-speed floor for single-request
+            agent use, including long context. It is not a Hermes daily-driver
+            promotion yet: the run proves fit, endpoint behavior, and raw
+            speed, not task quality or tool reliability under real workflows.
+          </p>
+        </section>
+
+        <section>
+          <h2>Frozen Profile</h2>
+          <table>
+            <tbody>
+              <tr>
+                <th>Model repo</th>
+                <td><a href="https://huggingface.co/huihui-ai/Huihui-GLM-5.2-abliterated-GGUF">huihui-ai/Huihui-GLM-5.2-abliterated-GGUF</a></td>
+              </tr>
+              <tr>
+                <th>Revision</th>
+                <td><code>5cf1c361c20164063c0012177c510021f4147042</code></td>
+              </tr>
+              <tr>
+                <th>GGUF</th>
+                <td><code>GLM-5.2-UD-Q3_K_M-00001-of-00009.gguf</code></td>
+              </tr>
+              <tr>
+                <th>Hardware</th>
+                <td>Four A100-SXM4-80GB GPUs with all-to-all NVLink visible</td>
+              </tr>
+              <tr>
+                <th>Runtime</th>
+                <td><a href="https://github.com/beverm2391/llama-cpp-turboquant">llama.cpp TurboQuant fork</a>, tested branch <code>codex/glm52-a100-runtime-experiments</code> at <code>0cf69160</code></td>
+              </tr>
+              <tr>
+                <th>Context</th>
+                <td><code>--ctx-size 131072</code></td>
+              </tr>
+              <tr>
+                <th>KV cache</th>
+                <td><code>--cache-type-k q8_0 --cache-type-v turbo2</code></td>
+              </tr>
+              <tr>
+                <th>Placement</th>
+                <td><code>-ngl 999 --split-mode layer --tensor-split 1,1,1,1</code> with six MoE expert layers on CPU</td>
+              </tr>
+              <tr>
+                <th>Batch geometry</th>
+                <td><code>-b 1024 -ub 128</code></td>
+              </tr>
+              <tr>
+                <th>Server slots</th>
+                <td><code>--parallel 1</code>; parallel requests queue behind one decode lane</td>
+              </tr>
+              <tr>
+                <th>Observed provider price</th>
+                <td>RunPod 4x A100 at <code>$5.96/hr</code>, plus storage while volumes are retained</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2>The Trick</h2>
+          <p>
+            GLM-5.2 Q3 does not fit this 128K q8/turbo2 profile as a simple
+            "everything on GPU" launch. The useful compromise is precise MoE
+            placement: keep the model distributed across all four GPUs, then
+            spill a small fixed set of expert tensors to CPU:
+          </p>
+          <pre><code>-ot 'blk.(20|21|40|41|60|61).ffn_.*_exps.weight=CPU'</code></pre>
+          <p>
+            That recovers enough memory headroom without changing the model
+            artifact, quant, context target, K cache, V cache, chat template,
+            or reasoning mode. It is a fit/speed control for future work on
+            MI300X, H200/B200-class GPUs, DS4, KTransformers-style offload, or
+            custom MoE scheduling.
+          </p>
+        </section>
+
+        <section>
+          <h2>Official Raw Endpoint Profile</h2>
+          <p>
+            The benchmark below is BENCORP's AA-lite raw OpenAI-compatible
+            endpoint profile. It measures endpoint speed and latency only. It
+            does not store raw prompt or response text, and it is not a quality
+            benchmark.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Workload</th>
+                <th class="num">Wall output tok/s</th>
+                <th class="num">Server output tok/s</th>
+                <th class="num">Elapsed p50</th>
+                <th class="num">TTFT</th>
+                <th class="num">Runs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1k input / 1k output</td>
+                <td class="num">14.063</td>
+                <td class="num">14.116</td>
+                <td class="num">71.111s</td>
+                <td class="num">11.979s</td>
+                <td class="num">3/3</td>
+              </tr>
+              <tr>
+                <td>10k input / 1.5k output</td>
+                <td class="num">13.920</td>
+                <td class="num">13.964</td>
+                <td class="num">107.761s</td>
+                <td class="num">68.446s</td>
+                <td class="num">3/3</td>
+              </tr>
+              <tr>
+                <td>100k target input / 2k output</td>
+                <td class="num">10.804</td>
+                <td class="num">10.869</td>
+                <td class="num">173.541s</td>
+                <td class="num">799.583s</td>
+                <td class="num">3/3</td>
+              </tr>
+              <tr>
+                <td>10 concurrent 1k requests</td>
+                <td class="num">2.617</td>
+                <td class="num">14.303</td>
+                <td class="num">385.336s</td>
+                <td class="num">n/a</td>
+                <td class="num">10/10</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            The parallel result is intentionally poor because the frozen server
+            profile uses one slot. The useful signal is that individual decode
+            speed stays near 14 tok/s for short and mid prompts, then falls to
+            about 10.8 wall tok/s at the long-context target.
+          </p>
+        </section>
+
+        <section>
+          <h2>Reproduce The Shape</h2>
+          <p>
+            The provider path and model staging directory can change. The
+            runtime contract should not change unless the experiment is
+            explicitly testing a new profile:
+          </p>
+          <pre><code>llama-server \
+  --model GLM-5.2-UD-Q3_K_M-00001-of-00009.gguf \
+  --ctx-size 131072 \
+  -ngl 999 \
+  --split-mode layer \
+  --tensor-split 1,1,1,1 \
+  -ot 'blk.(20|21|40|41|60|61).ffn_.*_exps.weight=CPU' \
+  --cache-type-k q8_0 \
+  --cache-type-v turbo2 \
+  -b 1024 \
+  -ub 128 \
+  --flash-attn on \
+  --parallel 1 \
+  --jinja \
+  --no-webui \
+  --no-mmproj \
+  --fit off \
+  --reasoning off \
+  --reasoning-budget 0 \
+  --no-mmap \
+  -t 64 \
+  -tb 64</code></pre>
+          <p>
+            Treat topology as part of the profile. A 4x A100 PCIe host or a
+            weak interconnect should be re-profiled before using these numbers
+            for cost comparisons.
+          </p>
+        </section>
+
+        <section>
+          <h2>Open Gates</h2>
+          <ul>
+            <li>Run Hermes daily-driver quality checks before promotion.</li>
+            <li>Test real tool-call behavior, not only one simple API smoke.</li>
+            <li>Compare against high-memory NVIDIA and MI300X/MI325X pricing.</li>
+            <li>Explore whether DS4, KTransformers-style offload, or custom MoE scheduling can improve long-context TTFT and parallel throughput.</li>
+            <li>Do not treat this as an optimal serving engine; treat it as the current CUDA control.</li>
+          </ul>
+        </section>
+
+        <footer>
+          <p>
+            Published as a safe summary. Raw prompts, raw model responses,
+            private traces, provider tunnel details, and credentials are
+            intentionally excluded.
+          </p>
+        </footer>
+      </article>
+    </main>
+  </body>
+</html>
